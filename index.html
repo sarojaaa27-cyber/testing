@@ -898,29 +898,29 @@ function checkDailyRewards() {
 };
 
 function handleItemInteraction(itemName) {
-    const now = Date.now();
-    const effect = itemEffects[itemName];
-    
-    // Safety check: ensure item exists in effects and cargo
-    if (!effect || !p.cargo[itemName] || p.cargo[itemName] <= 0) return;
+const now = Date.now();
+const effect = itemEffects[itemName];
 
-    if (now - lastTap < 300) {
-        // --- DOUBLE TAP DETECTED ---
-        // We clear any pending single-tap timers
-        if (window.itemTapTimeout) clearTimeout(window.itemTapTimeout);
-        consumeItem(itemName);
-    } else {
-        // --- SINGLE TAP DETECTED ---
-        // We use a timeout to wait and see if a second tap is coming
-        window.itemTapTimeout = setTimeout(() => {
-            playSfx('click');
-            showSystemMessage(
-                itemName.toUpperCase(), 
-                `<span style="color:var(--accent)">EFFECT:</span><br>${effect.desc}<br><br><small style="color:#666;">[ Double-tap to consume ]</small>`
-            );
-        }, 300);
-    }
-    lastTap = now;
+// Safety check: ensure item exists in effects and cargo
+if (!effect || !p.cargo[itemName] || p.cargo[itemName] <= 0) return;
+
+if (now - lastTap < 300) {
+    // --- DOUBLE TAP DETECTED ---
+    // We clear any pending single-tap timers
+    if (window.itemTapTimeout) clearTimeout(window.itemTapTimeout);
+    consumeItem(itemName);
+} else {
+    // --- SINGLE TAP DETECTED ---
+    // We use a timeout to wait and see if a second tap is coming
+    window.itemTapTimeout = setTimeout(() => {
+        playSfx('click');
+        showSystemMessage(
+            itemName.toUpperCase(), 
+            `<span style="color:var(--accent)">EFFECT:</span><br>${effect.desc}<br><br><small style="color:#666;">[ Double-tap to consume ]</small>`
+        );
+    }, 300);
+}
+lastTap = now;
 }
 
 async function consumeItem(itemName) {
