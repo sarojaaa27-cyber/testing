@@ -967,28 +967,40 @@ function consumeItem(itemName) {
             </div>`).join('');
         timerId = setInterval(updateTimer, 1000); updateTimer();
     } else if (tab === 'cargo') {
-        const hasItems = Object.entries(p.cargo).some(([n, c]) => c > 0);
-        if (!hasItems) { cont.innerHTML = `<div style="text-align:center; padding:50px; color:#444;">INVENTORY EMPTY</div>`; return; }
-
-        cont.innerHTML = `<div style="color:#bf00ff; font-size:0.6rem; text-align:center; margin-bottom:15px;">[ DOUBLE-TAP TO USE ]</div>` +
-            Object.entries(p.cargo).map(([name, count]) => {
-                if (count <= 0) return '';
-                let color = '#bf00ff'; // Purple
-                if (name === 'System Key' || name === 'Elixir of Greatness') color = '#ffaa00'; // Gold
-                else if (["Shadow Essence", "Warrior's Spirit", "Scholar's Scroll", "Elixir of Life"].includes(name)) color = '#00ff95'; // Green
-
-                return `
-                <div class="quest-card" onclick="handleItemInteraction('${name}')" style="border-color:${color}; box-shadow: 0 0 10px ${color}33;">
-                    <div>
-                        <span class="quest-title" style="color:${color}">${name}</span>
-                        <div style="font-size:0.5rem; color:#555; margin-top:4px;">${color==='#ffaa00'?'ARTIFACT':'SYSTEM REWARD'}</div>
-                    </div>
-                    <span style="color:${color}; font-size:1.2rem; font-family:'JetBrains Mono';">x${count}</span>
-                </div>`;
-            }).join('');
+    const items = Object.entries(p.cargo).filter(([_, count]) => count > 0);
+    
+    if (items.length === 0) {
+        cont.innerHTML = `<div style="text-align:center; padding:50px; opacity:0.3;">INVENTORY EMPTY</div>`;
+        return;
     }
-        // Add this inside your existing render(tab) function
-      else if (tab === 'ranking') {
+
+    cont.innerHTML = items.map(([name, count]) => `
+        <div class="quest-card" onclick="handleLegacyClick('${name}')" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div class="quest-title" style="color:var(--accent);">${name}</div>
+                <div style="font-size:0.6rem; opacity:0.6;">Click to view / Hold to use</div>
+            </div>
+            <div style="font-size:1.2rem; color:var(--accent);">x${count}</div>
+        </div>
+    `).join('');
+}
+
+// Simple, fast interaction logic
+function handleLegacyClick(name) {
+    const effect = itemEffects[name];
+    if (!effect) return;
+
+    // Show info immediately
+    showSystemMessage(name, effect.desc + "<br><br><b>[ CLICK AGAIN TO CONSUME ]</b>");
+    
+    // Set up the next click to consume
+    const cards = document.querySelectorAll('.quest-card');
+    cards.forEach(card => {
+        if (card.innerText.includes(name)) {
+            card.onclick = () => consumeItem(name);
+        }
+    });
+} else if (tab === 'ranking') {
         cont.innerHTML = `
             <div style="text-align:center; color:var(--accent); font-family:'JetBrains Mono'; font-size:0.7rem; margin-bottom:20px;">
                 [ GLOBAL HUNTER RANKINGS ]
@@ -1103,34 +1115,38 @@ function consumeItem(itemName) {
         counterEl.style.textShadow = "none";
     }
 }
-    function fetchLeaderboard() {
-    const lbDisplay = document.getElementById('leaderboard-display');
-    
-    db.collection('hunters')
-      .orderBy('level', 'desc') // Primary Sort
-      .orderBy('exp', 'desc')   // Secondary Sort (The Tie-Breaker)
-      .limit(20)
-      .onSnapshot(snapshot => {
-          lbDisplay.innerHTML = "";
-          snapshot.docs.forEach((doc, index) => {
-              const data = doc.data();
-              const currentRank = index + 1;
-              
-              lbDisplay.innerHTML += `
-                  <div class="lb-item" onclick="showProfile('${doc.id}')" style="cursor:pointer">
-                      <div class="lb-rank">${currentRank.toString().padStart(2, '0')}</div>
-                      <div class="lb-info">
-                          <span class="name">${data.name || "UNKNOWN"}</span>
-                          <span class="job">${data.job || "HUNTER"}</span>
-                      </div>
-                      <div class="lb-level">LVL ${data.level}</div>
-                  </div>
-              `;
-          });
-      }, error => {
-          console.log("Index Error: ", error.message);
-          // If you see an error here, check the link in the browser console (F12)
-      });
+    async function renderLeaderboard() {
+    const cont = document.getElementById('main-content');
+    cont.innerHTML = `<div class="system-msg">RETRIEVING RANKINGS...</div>`;
+
+    try {
+        const snapshot = await db.collection('hunters')
+            .orderBy('level', 'desc')
+            .limit(10)
+            .get();
+
+        let html = `<h2 style="text-align:center; color:var(--accent); letter-spacing:3px;">RANKINGS</h2>`;
+        
+        snapshot.forEach((doc, index) => {
+            const data = doc.data();
+            const isMe = auth.currentUser && doc.id === auth.currentUser.uid;
+            
+            html += `
+                <div class="quest-card" style="${isMe ? 'border:1px solid var(--accent); background:rgba(0,255,255,0.05);' : 'opacity:0.8;'}">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-family:'JetBrains Mono'; color:var(--accent);">#${index + 1}</span>
+                        <span style="font-weight:bold; flex-grow:1; margin-left:15px;">${data.name.toUpperCase()}</span>
+                        <span style="color:var(--accent);">LVL ${data.level}</span>
+                    </div>
+                </div>
+            `;
+        });
+
+        cont.innerHTML = html;
+    } catch (e) {
+        console.error(e);
+        cont.innerHTML = `<div class="system-msg">FAILED TO LOAD RANKINGS</div>`;
+    }
 }
     function showProfile(userId) {
     db.collection('hunters').doc(userId).get().then((doc) => {
