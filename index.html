@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#030508">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>THE SYSTEM | AWAKENING</title>
+    <link rel="icon" type="image/png" href="https://img.icons8.com/neon/96/00d4ff/shield.png">
+    <link rel="apple-touch-icon" href="https://img.icons8.com/neon/96/00d4ff/shield.png">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg: #030508;
+            --accent: #00d4ff;
+            --danger: #ff3e3e;
+            --success: #00ff95;
+            --border: rgba(255,255,255,0.1);
+        }
+
+        /* Responsive Mobile Frame */
+        body { 
+            background: var(--bg); 
+            color: #e0e0e0; 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            overflow: hidden; 
+            display: flex; 
+            justify-content: center; 
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            height: 100dvh;
+            position: relative;
+            background: radial-gradient(circle at top, #0a0f18 0%, #030508 100%);
+            display: flex;
+            flex-direction: column;
+        }
+        @keyframes glitch-shake {
+            0% { transform: translate(0); }
+            20% { transform: translate(-5px, 5px); }
+            40% { transform: translate(-5px, -5px); }
+            60% { transform: translate(5px, 5px); }
+            80% { transform: translate(5px, -5px); }
+            100% { transform: translate(0); }
+        }
+
+.system-glitch {
+    animation: glitch-shake 0.3s infinite;
+    filter: hue-rotate(90deg) contrast(1.5);
+    background-color: rgba(0, 212, 255, 0.1) !important;
+}
+
+        /* Cinematic Overlays */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 5000;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+        }
+        .lb-trend {
+            font-size: 0.8rem;
+            width: 25px;
+            text-align: center;
+            margin-right: 10px;
+        }
+
+        .trend-up { color: #00ff88; text-shadow: 0 0 5px #00ff8855; }
+        .trend-down { color: #ff4444; text-shadow: 0 0 5px #ff444455; }
+        .trend-new { color: var(--accent); opacity: 0.6; }
+        .trend-stable { color: #444; }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+.btn-confirm { border-color: var(--success); color: var(--success); }
+.btn-cancel { border-color: var(--danger); color: var(--danger); }
+
+        .hologram {
+            border: 1px solid var(--accent);
+            padding: 30px;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
+            animation: expand 0.4s ease-out;
+            background: rgba(0, 20, 40, 0.4);
+        }
+
+        /* Header Layout */
+        header { 
+            padding: 50px 25px 20px; 
+            border-bottom: 1px solid var(--border); 
+            background: rgba(0,0,0,0.3);
+        }
+
+        .hunter-name { 
+            font-family: 'JetBrains Mono'; 
+            font-size: 0.75rem; 
+            color: var(--accent); 
+            letter-spacing: 4px; 
+            text-transform: uppercase; 
+        }
+
+        .rank-box { 
+            font-family: 'JetBrains Mono'; 
+            font-size: 0.6rem; 
+            color: #555; 
+            letter-spacing: 2px; 
+        }
+
+        .lvl-text { font-size: 2.5rem; font-weight: 300; margin: 5px 0; }
+
+        .exp-bar { 
+            width: 100%; 
+            height: 2px; 
+            background: #111; 
+            margin-top: 15px; 
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .exp-fill { 
+            height: 100%; 
+            background: var(--accent); 
+            width: 0%; 
+            transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); 
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        /* Scrollable Content Area */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 25px 120px; /* Space for Nav */
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Stats & Pentagraph */
+        .chart-wrap { 
+            width: 100%; 
+            max-width: 300px; 
+            margin: 0 auto 25px; 
+        }
+
+        .quest-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border);
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 8px;
+        }
+
+        .quest-card.done { border-color: var(--success); opacity: 0.4; }
+
+        #timer { 
+            font-family: 'JetBrains Mono'; 
+            font-size: 2.2rem; 
+            text-align: center; 
+            margin-bottom: 30px; 
+            color: var(--accent); 
+            text-shadow: 0 0 10px rgba(0,212,255,0.4);
+        }
+
+        /* Mobile-First Navigation */
+        nav {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 85px;
+            background: rgba(5, 7, 10, 0.98);
+            border-top: 1px solid var(--border);
+            display: flex;
+            padding-bottom: env(safe-area-inset-bottom);
+            z-index: 4000;
+        }
+
+        nav button {
+            flex: 1;
+            background: none;
+            border: none;
+            color: #444;
+            font-family: 'JetBrains Mono';
+            font-size: 0.65rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: 0.3s;
+        }
+
+        /* Leaderboard Styling */
+.lb-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.lb-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+}
+        /* The Pop-up Overlay */
+#profile-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 1000;
+    justify-content: center; align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+.profile-card {
+    background: #111;
+    border: 1px solid var(--accent);
+    padding: 20px;
+    width: 280px;
+    text-align: center;
+    box-shadow: 0 0 20px var(--accent-low);
+}
+
+.profile-card h2 { color: var(--accent); margin-bottom: 5px; text-transform: uppercase; }
+.profile-card p { margin: 10px 0; color: #bbb; font-family: 'Courier New', monospace; }
+.profile-card .stat-val { color: #fff; font-weight: bold; }
+
+.close-btn {
+    margin-top: 15px;
+    background: transparent;
+    border: 1px solid #444;
+    color: #888;
+    padding: 5px 15px;
+    cursor: pointer;
+}
+.close-btn:hover { border-color: var(--accent); color: white; }
+
+.lb-item.is-me {
+    border-color: var(--accent);
+    background: rgba(0, 212, 255, 0.05);
+}
+
+.lb-rank {
+    font-family: 'JetBrains Mono';
+    font-size: 1.2rem;
+    font-weight: 700;
+    width: 45px;
+    color: #444;
+}
+
+.lb-info { flex: 1; }
+.lb-info .name { 
+    display: block; 
+    font-size: 0.85rem; 
+    text-transform: uppercase; 
+    letter-spacing: 1px; 
+}
+
+.lb-info .job { 
+    font-size: 0.6rem; 
+    color: var(--accent); 
+    opacity: 0.7; 
+}
+
+.lb-level {
+    font-family: 'JetBrains Mono';
+    font-weight: bold;
+    color: var(--accent);
+}
+        /* Penalty Glitch Effect */
+.penalty-bg {
+    animation: penalty-flash 0.5s infinite;
+    background: rgba(255, 0, 0, 0.2) !important;
+}
+
+@keyframes penalty-flash {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.penalty-text {
+    color: var(--danger);
+    font-family: 'JetBrains Mono';
+    text-shadow: 0 0 15px rgba(255, 62, 62, 0.8);
+    font-size: 1.5rem;
+    letter-spacing: 5px;
+    margin-bottom: 20px;
+}
+
+/* Top 3 Glow */
+.lb-item:nth-child(1) .lb-rank { color: #FFD700; text-shadow: 0 0 10px #FFD70055; }
+.lb-item:nth-child(2) .lb-rank { color: #C0C0C0; }
+.lb-item:nth-child(3) .lb-rank { color: #CD7F32; }
+
+        /* Update these in your <style> section */
+
+.hunter-name { 
+    font-family: 'JetBrains Mono'; 
+    font-size: 1.1rem; /* Increased from 0.75rem */
+    color: var(--accent); 
+    letter-spacing: 3px; 
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.rank-box { 
+    font-family: 'JetBrains Mono'; 
+    font-size: 0.85rem; /* Increased from 0.6rem */
+    color: #888; /* Slightly lighter for better contrast */
+    letter-spacing: 2px;
+    font-weight: 700;
+}
+
+#job-display {
+    font-size: 0.75rem !important; /* Increased from 0.5rem */
+    color: var(--accent); 
+    opacity: 0.8 !important; /* More visible than 0.5 */
+    letter-spacing: 1px;
+    margin-top: 2px;
+    font-family: 'JetBrains Mono';
+}
+
+.lvl-text { 
+    font-size: 3.2rem; /* Increased from 2.5rem */
+    font-weight: 300; 
+    margin: 10px 0; 
+    line-height: 1;
+}
+
+#lvl-display {
+    font-weight: 700; /* Makes the number stand out */
+}
+
+        nav button.active {
+            color: var(--accent);
+            text-shadow: 0 0 8px var(--accent);
+        }
+
+        nav button.active::after {
+            content: '';
+            width: 15px;
+            height: 2px;
+            background: var(--accent);
+            margin-top: 8px;
+        }
+
+        .btn { 
+            background: transparent; 
+            border: 1px solid var(--accent); 
+            color: var(--accent); 
+            padding: 14px 30px; 
+            font-family: 'JetBrains Mono'; 
+            cursor: pointer; 
+            text-transform: uppercase; 
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+        }
+
+        @keyframes expand { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div id="profile-overlay" onclick="closeProfile()">
+        <div class="profile-card" onclick="event.stopPropagation()">
+            <small style="color:var(--accent); opacity:0.5;">- HUNTER DATA -</small>
+            <h2 id="p-name">---</h2>
+            <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
+            <p>LEVEL: <span id="p-level" class="stat-val">0</span></p>
+            <p>EXP: <span id="p-exp" class="stat-val">0</span></p>
+            <p>STREAK: <span id="p-streak" class="stat-val">0</span> DAYS</p>
+            <button class="close-btn" onclick="closeProfile()">CLOSE</button>
+        </div>
+    </div>
+
+<div class="app-container">
+    <div id="notice-overlay" class="overlay">
+        <div class="hologram">
+            <div style="color:var(--accent); font-family:'JetBrains Mono'; font-size:0.7rem; margin-bottom:15px;">[ NOTICE ]</div>
+            <p>You have met the requirements for the <b>"Player"</b> Awakening.</p>
+            <button class="btn" onclick="showAuth()">Initialize Link</button>
+        </div>
+    </div>
+
+    <div id="auth-overlay" class="overlay hidden">
+        <div class="hologram">
+            <h2 style="font-weight: 300;">IDENTITY <br><b>SYNCHRONIZATION</b></h2>
+            <button class="btn" onclick="signIn()">Sign in with Google</button>
+        </div>
+    </div>
+
+    <header id="main-header" class="hidden">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div style="flex: 1;">
+            <span class="hunter-name" id="disp-name">PLAYER_UNKNOWN</span>
+            <div id="rank-display" class="rank-box">RANK: E</div>
+            <div id="job-display">UNAWAKENED</div>
+            <div class="lvl-text">LVL <span id="lvl-display">01</span></div>
+        </div>
+        <div style="text-align: right; padding-top: 5px;">
+            <div class="rank-box" style="font-size: 0.6rem; opacity: 0.6;">STREAK</div>
+            <div style="font-size: 1.6rem; color: var(--accent); font-weight: 700;" id="streak-display">0</div>
+        </div>
+    </div>
+    <div class="exp-bar"><div id="exp-fill" class="exp-fill"></div></div>
+    <div id="exp-counter" style="font-family:'JetBrains Mono'; font-size:0.65rem; color:#555; text-align:right; margin-top:5px;">0 / 100 EXP</div>
+</header>
+
+    <div id="main-content" class="content hidden"></div>
+
+    <nav id="main-nav" class="hidden">
+    <button onclick="render('status')" id="nav-status">STATUS</button>
+    <button onclick="render('mission')" id="nav-mission">QUESTS</button>
+    <button onclick="render('ranking')" id="nav-ranking">RANKING</button> 
+    <button onclick="render('cargo')" id="nav-cargo">INVENTORY</button>
+</nav>
+</div>
+
+<script>
+    // --- UPDATED SYSTEM SOUNDS ---
+const sounds = {
+    // Sharp digital "Chime" for standard notifications
+    ping: new Audio('https://raw.githubusercontent.com/Aris-T004/Test-Assets/main/system-notification.mp3'), 
+    
+    // Heavy electronic "Thud/Level Up"
+    levelUp: new Audio('https://raw.githubusercontent.com/Aris-T004/Test-Assets/main/level-up.mp3'),
+    
+    // Quick "Blade/Woosh" sound for menu clicks
+    click: new Audio('https://raw.githubusercontent.com/Aris-T004/Test-Assets/main/ui-click.mp3'),
+    
+    // Glitchy "Danger" sound for Surprise Quests/Alerts
+    alert: new Audio('https://raw.githubusercontent.com/Aris-T004/Test-Assets/main/system-alert.mp3'),
+    
+    // High-pitched "Crystal" sound for item consumption
+    consume: new Audio('https://raw.githubusercontent.com/Aris-T004/Test-Assets/main/item-use.mp3')
+};
+
+function playSfx(type) {
+    if (sounds[type]) {
+        const sfx = sounds[type];
+        sfx.currentTime = 0; 
+        sfx.volume = 0.5; // Slightly louder for impact
+        sfx.play().catch(e => console.warn("Interaction required for audio."));
+    }
+}
+    // --- FIREBASE CONFIG ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyBBveJmrWxVnnalA34G7KZR6COhrOcxiok",
+        authDomain: "solo-levelling-system-5edae.firebaseapp.com",
+        projectId: "solo-levelling-system-5edae",
+        storageBucket: "solo-levelling-system-5edae.firebasestorage.app",
+        messagingSenderId: "800420338485",
+        appId: "1:800420338485:web:faa95b0a692fe9abb8ca7c"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const provider = new firebase.auth.GoogleAuthProvider();
+
+    let p = null; 
+    let timerId = null;
+    let statsChart = null;
+    let lastTap = 0;
+
+    // --- AUTH ---
+    auth.onAuthStateChanged(user => {
+        if (user) syncHunter(user);
+    });
+
+    async function signIn() {
+        await auth.signInWithPopup(provider);
+    }
+
+    function showAuth() {
+        document.getElementById('notice-overlay').classList.add('hidden');
+        document.getElementById('auth-overlay').classList.remove('hidden');
+    }
+
+    // --- DATA SYNC ---
+    async function syncHunter(user) {
+    const docRef = db.collection('hunters').doc(user.uid);
+    const doc = await docRef.get();
+
+    if (doc.exists) {
+        p = doc.data();
+        // Check for new day before showing the UI
+        checkSystemDay(); 
+    } else {
+        // New Player Initialization
+        p = {
+            name: user.displayName || "HUNTER", 
+            level: 1, 
+            exp: 0, 
+            streak: 0, 
+            job: "UNAWAKENED",
+            stats: { STR: 10, AGI: 10, VIT: 10, INT: 10, FOC: 10 },
+            cargo: {}, 
+            missions: [], 
+            lastUpdate: new Date().toDateString()
+        };
+        await docRef.set(p);
+        boot(); 
+    }
+}
+    function boot() {
+    if (!p) return; // Hard safety stop
+
+    // 1. Hide ALL overlays
+    document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
+    
+    // 2. Reveal UI
+    document.getElementById('main-header').classList.remove('hidden');
+    document.getElementById('main-nav').classList.remove('hidden');
+    document.getElementById('main-content').classList.remove('hidden');
+    
+    // 3. Set Name
+    const nameDisplay = document.getElementById('disp-name');
+    if (nameDisplay) nameDisplay.innerText = p.name.toUpperCase();
+    
+    // 4. Ensure quests exist
+    if (!p.missions || p.missions.length === 0) generateQuests();
+    
+    // 5. Final UI Update
+    updateUI();
+    render('status'); 
+}
+
+    function checkSystemDay() {
+    const today = new Date().toDateString();
+    
+    if (p.lastUpdate !== today) {
+        // Check if they failed to finish missions yesterday
+        const incomplete = p.missions && p.missions.length > 0 && p.missions.some(m => !m.done);
+        
+        if (incomplete) {
+            triggerQuestFailure(); // This handles its own boot() via acknowledgePenalty
+        } else {
+            // Success! Check for rewards before resetting quests
+            checkDailyRewards(); 
+            
+            p.lastUpdate = today;
+            generateQuests();
+            save();
+            boot();
+        }
+    } else {
+        boot(); // Same day, proceed to UI
+    }
+}
+    function save() { 
+        if(auth.currentUser && p) {
+            db.collection('hunters').doc(auth.currentUser.uid).set(p); 
+        }
+    }
+
+    // --- MISSIONS ---
+function generateQuests() {
+    // 1. Calculate the Scaling Difficulty
+    const d = 10 + (p.level * 2);
+
+    // 2. Define the Pool
+    const pool = [
+        { s: 'STR', n: 'Push-ups', r: d },
+        { s: 'STR', n: 'Squats', r: d * 2 },
+        { s: 'STR', n: 'Jumping Squats', r: d * 2 },
+        { s: 'STR', n: 'Pull-ups', r: d * 2 },
+        { s: 'STR', n: 'Sit-ups', r: d * 2 },
+        { s: 'STR', n: 'Lunges', r: d * 2 },
+        { s: 'STR', n: 'Crunches', r: d * 2 },
+        { s: 'STR', n: 'Dips', r: d * 2 },
+        { s: 'AGI', n: 'Burpees', r: Math.floor(d/2) },
+        { s: 'AGI', n: 'High Knees', r: Math.floor(d/2) },
+        { s: 'AGI', n: 'Standing Run', r: Math.floor(d/2) },
+        { s: 'AGI', n: 'High jumps', r: Math.floor(d/2) },
+        { s: 'AGI', n: 'Jump rope', r: Math.floor(d/2) },
+        { s: 'AGI', n: 'Split jumps', r: Math.floor(d/2) },
+        { s: 'VIT', n: 'Cold Shower', r: '3 Minutes' },
+        { s: 'VIT', n: 'Fast walk', r: '3 Minutes' },
+        { s: 'VIT', n: 'Running/Cycling', r: '5KM' },
+        { s: 'VIT', n: 'Shadow Box', r: '3 Minutes' },
+        { s: 'INT', n: 'Deep Work', r: '40 Minutes' },
+        { s: 'INT', n: 'Play Chess', r: '40 Minutes' },
+        { s: 'INT', n: 'Learn new skill', r: '40 Minutes' },
+        { s: 'INT', n: 'Study', r: '40 Minutes' },
+        { s: 'INT', n: 'Knowledge', r: '40 Minutes' },
+        { s: 'FOC', n: 'No Phone', r: '1 Hour' },
+        { s: 'FOC', n: 'Meditate', r: '30 Minutes' },
+        { s: 'FOC', n: 'Box Breathing', r: '5 Minutes' },
+        { s: 'FOC', n: 'Thinking', r: '30 Minutes' },
+        { s: 'FOC', n: 'Book Reading', r: '30 Minutes' },
+        { s: 'FOC', n: 'Write about your day', r: '10 Minutes' }
+    ];
+
+    // 3. Shuffle and Select 5 Regular Missions
+    let selectedMissions = pool
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 5)
+        .map((q, i) => ({ ...q, id: i, done: false, isSurprise: false }));
+
+    // 4. Inject Surprise Quest (Level 10-15 Only)
+    if (p.level >= 10 && p.level <= 15) {
+        const surprisePool = [
+            { s: 'STR', n: 'SURPRISE: Limit Breaker', r: '60 Push-ups' },
+            { s: 'VIT', n: 'SURPRISE: Iron Body', r: '5 Min Cold Shower' },
+            { s: 'AGI', n: 'SURPRISE: Shadow Step', r: '3KM Run' }
+        ];
+        
+        const randomSQ = surprisePool[Math.floor(Math.random() * surprisePool.length)];
+        
+        selectedMissions.push({
+            ...randomSQ,
+            id: 'sq_99',
+            done: false,
+            isSurprise: true
+        });
+    }
+
+    // 5. Save all at once to prevent UI glitches
+    p.missions = selectedMissions;
+    save();
+}
+
+    // Step 1: The Trigger (Asks the player)
+function completeMission(id) {
+    playSfx('click');
+    
+    // Find the specific mission name for the pop-up
+    const mission = p.missions.find(m => m.id == id);
+    
+    // Create the Confirmation Overlay
+    const confirmOverlay = document.createElement('div');
+    confirmOverlay.className = 'overlay';
+    confirmOverlay.id = 'confirm-overlay';
+    confirmOverlay.innerHTML = `
+        <div class="hologram">
+            <div style="color:var(--accent); font-family:'JetBrains Mono'; font-size:0.7rem;">[ MISSION COMPLETION ]</div>
+            <h2 style="margin:15px 0; font-weight:300;">Confirm Results?</h2>
+            <p style="font-size:0.8rem; color:#aaa;">Have you truly completed: <br><b>${mission.n}</b>?</p>
+            <div class="btn-group">
+                <button class="btn btn-confirm" onclick="executeMission('${id}')">YES</button>
+                <button class="btn btn-cancel" onclick="this.parentElement.parentElement.parentElement.remove()">NO</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(confirmOverlay);
+}
+    
+function checkDailyCompletion() {
+    const regularMissions = p.missions.filter(m => !m.isSurprise);
+    const surpriseMission = p.missions.find(m => m.isSurprise);
+
+    const regularDone = regularMissions.every(m => m.done);
+
+    if (regularDone) {
+        // If regular quests are done but a Surprise Quest exists and is NOT done
+        if (surpriseMission && !surpriseMission.done) {
+            p.exp = Math.max(0, p.exp - 30); // Deduct 30 EXP
+            playSfx('alert');
+            showSystemMessage("PENALTY APPLIED", "Regular quests cleared, but Surprise Quest was ignored. <br><br>-30 EXP deducted.");
+        } else {
+            // Standard rewards for full completion
+            p.streak++;
+            showSystemMessage("QUEST CLEAR", "All missions completed successfully.");
+        }
+        save();
+        updateUI();
+    }
+}
+    function gainExp(amount) {
+    p.exp += amount;
+    
+    // The "while" loop ensures multiple level-ups if the gain is huge
+    let leveledUp = false;
+    while (p.exp >= nextLevelGoal) {
+        p.exp -= nextLevelGoal;
+        p.level++;
+        leveledUp = true;
+        
+        // If your level-up requirement increases, update it here:
+        // nextLevelGoal = p.level * 100; 
+    }
+
+    if (leveledUp) {
+        showSystemMessage(`LEVEL UP! YOU ARE NOW LVL ${p.level}`);
+        if(window.playSfx) playSfx('levelup');
+    }
+
+    save();
+    // Re-render whatever screen the player is on
+    if(typeof currentTab !== 'undefined') render(currentTab);
+}
+    function useDopamineHit() {
+    const reward = 15; // Or whatever your value is
+    
+    // Use the master function! 
+    // This handles the exp, the level up, and the save automatically.
+    gainExp(reward);
+    
+    showSystemMessage("DOPAMINE HIT: +50 EXP RECEIVED");
+}
+
+// Step 2: The Execution (Gives rewards)
+function executeMission(id) {
+    // Remove the confirmation popup
+    const confirmOverlay = document.getElementById('confirm-overlay');
+    if (confirmOverlay) confirmOverlay.remove();
+    
+    // Find mission
+    let mission = p.missions.find(m => m.id == id);
+    if (!mission || mission.done) return;
+
+    // Mark as done and give rewards
+    mission.done = true;
+    gainExp(10); // Or whatever your exp amount is
+    
+    save();
+    renderMissions(); // Refresh the list
+    showNotice("MISSION COMPLETE");
+}
+
+    // --- 3. DAILY CLEAR REWARD ---
+    // --- 3. DAILY CLEAR REWARD ---
+    // --- 3. DAILY CLEAR REWARD ---
+function checkDailyRewards() {
+    if (!p.missions || p.missions.length === 0) return;
+    
+    if (p.missions.every(m => m.done)) {
+        p.streak++;
+        
+        const commonRewards = ["Rest Protocol", "Dopamine Hit", "Focus Token", "Physical Restoration", "Blessed Box"];
+        const rareRewards = ["Shadow Essence", "Warrior's Spirit", "Scholar's Scroll", "Elixir of Life"];
+        const legendaryRewards = ["System Key", "Elixir of Greatness"];
+
+        let pool = [...commonRewards];
+        if (p.level >= 20) pool.push(...rareRewards);
+        if (p.level >= 30) pool.push(...legendaryRewards);
+
+        const r = pool[Math.floor(Math.random() * pool.length)];
+        p.cargo[r] = (p.cargo[r] || 0) + 1;
+        
+        let color = "var(--accent)";
+        if (rareRewards.includes(r)) color = "#00ff95"; 
+        if (legendaryRewards.includes(r)) color = "#ffaa00"; 
+
+        showSystemMessage("QUEST CLEAR", `Daily tasks finalized. <br>Received: <span style="color:${color}">${r}</span>`);
+    }
+}
+    // --- 4. LEVEL UP CHECK (OVERFLOW + SCALING) ---
+    // Formula: Every level requires 100 + (Level * 5)
+    let nextLevelGoal = 100 + (p.level * 5);
+
+    while (p.exp >= nextLevelGoal) {
+        p.exp -= nextLevelGoal; // Subtract cost (Overflow balance carried over)
+        p.level++;
+        nextLevelGoal = 100 + (p.level * 5); // Update goal for next level check
+
+        if (p.level === 5) {
+            playSfx('levelUp');
+            const bonuses = ["Blessed Box", "Rest Protocol", "Focus Token"];
+            bonuses.forEach(item => { p.cargo[item] = (p.cargo[item] || 0) + 1; });
+            showSystemMessage("MILESTONE 5", `Level 5 reached. Bonus rewards granted.`);
+        } 
+        else if (p.level === 10) {
+            document.body.classList.add('system-glitch');
+            playSfx('alert');
+            setTimeout(() => {
+                document.body.classList.remove('system-glitch');
+                showSystemMessage("SYSTEM OVERRIDE", `LEVEL 10: SURPRISE QUESTS UNLOCKED. Penalty active.`);
+            }, 1000);
+        } 
+        else {
+            playSfx('levelUp');
+            showSystemMessage("LEVEL UP", `Reached Level ${p.level}`);
+        }
+    }
+
+    save(); 
+    updateUI(); 
+    render('mission');
+}
+    function triggerQuestFailure() {
+        // Force hide the initialization overlays
+        document.querySelectorAll('.overlay').forEach(el => el.classList.add('hidden'));
+        
+        playSfx('alert');
+        
+        // Apply Penalties immediately to the data
+        if (p.level > 1) p.level--;
+        p.streak = 0;
+        p.exp = 0;
+        p.lastUpdate = new Date().toDateString(); // Set to today so it doesn't loop
+        generateQuests();
+        save();
+
+        // Show the failure screen
+        const failOverlay = document.createElement('div');
+        failOverlay.className = 'overlay';
+        failOverlay.id = "failure-screen";
+        failOverlay.style.zIndex = "9999";
+        failOverlay.innerHTML = `
+            <div class="hologram" style="border-color: var(--danger); box-shadow: 0 0 30px rgba(255,0,0,0.3);">
+                <div class="penalty-text">WARNING</div>
+                <p style="color:#fff; font-size:0.9rem;">DAILY QUESTS INCOMPLETE.</p>
+                <p style="color:var(--danger); font-family:'JetBrains Mono'; font-size:0.7rem;">
+                    PENALTY PROTOCOL INITIATED:<br>LEVEL REDUCED / STREAK RESET
+                </p>
+                <button class="btn btn-cancel" onclick="acknowledgePenalty()" style="margin-top:20px;">ACKNOWLEDGE</button>
+            </div>
+        `;
+        document.body.appendChild(failOverlay);
+        document.body.classList.add('penalty-bg');
+    }
+
+    function acknowledgePenalty() {
+    document.body.classList.remove('penalty-bg');
+    const failScreen = document.getElementById('failure-screen');
+    if (failScreen) failScreen.remove();
+    boot(); 
+}
+    const itemEffects = {
+    "Rest Protocol": { desc: "Increases Vitality (VIT) by 5. Purple Grade.", run: () => { p.stats.VIT += 5; return "VIT increased by 5."; }},
+    "Dopamine Hit": { desc: "Grants 15 EXP. Purple Grade.", run: () => { p.exp += 15; return "EXP increased by 15."; }},
+    "Focus Token": { desc: "Increases Focus (FOC) by 5. Purple Grade.", run: () => { p.stats.FOC += 5; return "FOC increased by 5."; }},
+    "Physical Restoration": { desc: "Increases STR and AGI by 2. Purple Grade.", run: () => { p.stats.STR += 2; p.stats.AGI += 2; return "Physical stats restored."; }},
+    "Blessed Box": { desc: "Random +5 to any stat. Purple Grade.", run: () => { 
+        const keys = Object.keys(p.stats); const s = keys[Math.floor(Math.random()*keys.length)];
+        p.stats[s] += 5; return `Blessed! ${s} increased by 5.`; 
+    }},
+    "Shadow Essence": { desc: "Rare: AGI +5. Green Grade.", run: () => { p.stats.AGI += 5; return "AGI +5."; }},
+    "Warrior's Spirit": { desc: "Rare: STR +5. Green Grade.", run: () => { p.stats.STR += 5; return "STR +5."; }},
+    "Scholar's Scroll": { desc: "Rare: INT +5. Green Grade.", run: () => { p.stats.INT += 5; return "INT +5."; }},
+    "Elixir of Life": { desc: "Rare: Grants 50 EXP. Green Grade.", run: () => { p.exp += 50; return "EXP +50."; }},
+    "Elixir of Greatness": { desc: "Legendary: ALL STATS +5. Gold Grade.", run: () => { 
+        Object.keys(p.stats).forEach(k => p.stats[k] += 5); return "All stats increased by 5."; 
+    }},
+    "System Key": { desc: "Legendary: Required for Job Change. [LVL 40]. Gold Grade", run: () => { 
+        if (p.level < 40) { p.cargo["System Key"]++; return "ACCESS DENIED: Insufficient Level."; }
+        p.job = "TRIAL IN PROGRESS"; return "JOB CHANGE PROTOCOL INITIATED.";
+    }}
+};
+
+function handleItemInteraction(itemName) {
+    const now = Date.now();
+    const effect = itemEffects[itemName];
+
+    if (now - lastTap < 300) {
+        // DOUBLE TAP -> CONSUME
+        consumeItem(itemName);
+        playSfx('consume');
+    } else {
+        // SINGLE TAP -> SHOW DEFINITION
+        // We use a small timeout to ensure we aren't about to double tap
+        setTimeout(() => {
+            if (Date.now() - lastTap >= 300) {
+                playSfx('click');
+                showSystemMessage(
+                    itemName.toUpperCase(), 
+                    `<span style="color:var(--accent)">EFFECT:</span><br>${effect.desc}<br><br><small>[ Double-tap to confirm consumption ]</small>`
+                );
+            }
+        }, 305);
+    }
+    lastTap = now;
+}
+    
+function consumeItem(itemName) {
+    if (p.cargo[itemName] > 0) {
+        // Clear previous info boxes
+        const overlays = document.querySelectorAll('.overlay:not(#notice-overlay):not(#auth-overlay)');
+        overlays.forEach(el => el.remove());
+
+        p.cargo[itemName] -= 1;
+        const resultText = itemEffects[itemName].run(); // Calls the 'run' function
+        
+        showSystemMessage("ITEM CONSUMED", resultText);
+        
+        // Level up check
+        if (p.exp >= p.level * 100) {
+            p.level++; p.exp = 0;
+            playSfx('levelUp');
+            showSystemMessage("LEVEL UP", `Reached Level ${p.level}`);
+        }
+        
+        save();
+        updateUI();
+        render('cargo'); 
+    }
+}
+
+    // --- TAB RENDERING ---
+    function render(tab) {
+    const cont = document.getElementById('main-content');
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('nav-' + tab).classList.add('active');
+    if (timerId) clearInterval(timerId);
+
+    if (tab === 'status') {
+        const statColors = { STR: '#ff3e3e', AGI: '#00ff95', VIT: '#ffaa00', INT: '#bf00ff', FOC: '#00d4ff' };
+        cont.innerHTML = `<div class="chart-wrap"><canvas id="statsChart"></canvas></div>` + 
+            Object.entries(p.stats).map(([k,v]) => `
+            <div style="display:flex; justify-content:space-between; padding:15px; border-bottom:1px solid #111; font-family:'JetBrains Mono';">
+                <span style="color:#777;">${k}</span>
+                <span style="color:${statColors[k]}; font-weight:bold; text-shadow: 0 0 5px ${statColors[k]}55;">${v.toString().padStart(2,'0')}</span>
+            </div>`).join('');
+        initChart();
+    } else if (tab === 'mission') {
+        cont.innerHTML = `<div id="timer">00:00:00</div>` + p.missions.map(m => `
+            <div class="quest-card ${m.done ? 'done' : ''}" onclick="completeMission('${m.id}')">
+                <div><span class="quest-req">${m.s}</span><br><span class="quest-title">${m.n}</span></div>
+                <div class="quest-req">REQ: ${m.r}</div>
+            </div>`).join('');
+        timerId = setInterval(updateTimer, 1000); updateTimer();
+    } else if (tab === 'cargo') {
+        const hasItems = Object.entries(p.cargo).some(([n, c]) => c > 0);
+        if (!hasItems) { cont.innerHTML = `<div style="text-align:center; padding:50px; color:#444;">INVENTORY EMPTY</div>`; return; }
+
+        cont.innerHTML = `<div style="color:#bf00ff; font-size:0.6rem; text-align:center; margin-bottom:15px;">[ DOUBLE-TAP TO USE ]</div>` +
+            Object.entries(p.cargo).map(([name, count]) => {
+                if (count <= 0) return '';
+                let color = '#bf00ff'; // Purple
+                if (name === 'System Key' || name === 'Elixir of Greatness') color = '#ffaa00'; // Gold
+                else if (["Shadow Essence", "Warrior's Spirit", "Scholar's Scroll", "Elixir of Life"].includes(name)) color = '#00ff95'; // Green
+
+                return `
+                <div class="quest-card" onclick="handleItemInteraction('${name}')" style="border-color:${color}; box-shadow: 0 0 10px ${color}33;">
+                    <div>
+                        <span class="quest-title" style="color:${color}">${name}</span>
+                        <div style="font-size:0.5rem; color:#555; margin-top:4px;">${color==='#ffaa00'?'ARTIFACT':'SYSTEM REWARD'}</div>
+                    </div>
+                    <span style="color:${color}; font-size:1.2rem; font-family:'JetBrains Mono';">x${count}</span>
+                </div>`;
+            }).join('');
+    }
+        // Add this inside your existing render(tab) function
+      else if (tab === 'ranking') {
+        cont.innerHTML = `
+            <div style="text-align:center; color:var(--accent); font-family:'JetBrains Mono'; font-size:0.7rem; margin-bottom:20px;">
+                [ GLOBAL HUNTER RANKINGS ]
+            </div>
+            <div id="leaderboard-display" class="lb-list">
+                <div style="text-align:center; padding:40px; color:#444;">SYNCING DATA...</div>
+            </div>
+        `;
+        fetchLeaderboard();
+    }
+}
+
+    function initChart() {
+        const ctx = document.getElementById('statsChart').getContext('2d');
+        if(statsChart) statsChart.destroy();
+        statsChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['STR', 'AGI', 'VIT', 'INT', 'FOC'],
+                datasets: [{
+                    data: [p.stats.STR, p.stats.AGI, p.stats.VIT, p.stats.INT, p.stats.FOC],
+                    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                    borderColor: '#00d4ff',
+                    borderWidth: 2,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                scales: {
+                    r: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        angleLines: { color: 'rgba(255,255,255,0.05)' },
+                        pointLabels: { color: '#666', font: { family: 'JetBrains Mono', size: 11 } },
+                        ticks: { display: false },
+                        suggestedMin: 0
+                    }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    function updateTimer() {
+    const now = new Date();
+    const tonight = new Date();
+    tonight.setHours(23, 59, 59, 999);
+
+    const diff = tonight - now;
+
+    if (diff <= 0) {
+        // CHECK: If there are unfinished quests, fail them!
+        const unfinished = p.missions.some(m => !m.done);
+        if (unfinished) {
+            triggerQuestFailure();
+        } else {
+            // If they were all done, just refresh quests for tomorrow
+            generateQuests();
+            location.reload(); 
+        }
+        return;
+    }
+
+    const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
+    const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
+    const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+
+    const timerEl = document.getElementById('timer');
+    if (timerEl) timerEl.innerText = `${h}:${m}:${s}`;
+}
+    
+    function showSystemMessage(title, body) {
+        playSfx('ping'); // <--- Add this line
+        const msg = document.createElement('div');
+        msg.className = 'overlay'; // Reuses your CSS overlay style
+        msg.innerHTML = `
+        <div class="hologram">
+            <div style="color:var(--accent); font-family:'JetBrains Mono'; font-size:0.7rem;">[ SYSTEM MESSAGE ]</div>
+            <h2 style="margin:15px 0; font-weight:300;">${title}</h2>
+            <p style="font-size:0.9rem; color:#aaa; margin-bottom:20px;">${body}</p>
+            <button class="btn" onclick="this.parentElement.parentElement.remove()">Confirm</button>
+        </div>
+    `;
+    document.body.appendChild(msg);
+}
+
+    function updateUI() {
+    const nextLvlExp = 100 + (p.level * 5);; // Your system's max exp formula
+    
+    // Update numerical displays
+    document.getElementById('lvl-display').innerText = p.level.toString().padStart(2, '0');
+    document.getElementById('streak-display').innerText = p.streak;
+    document.getElementById('job-display').innerText = p.job;
+    
+    // Update Rank based on level
+    const ranks = ['E','D','C','B','A','S'];
+    const rankIndex = Math.min(Math.floor(p.level/15), 5);
+    document.getElementById('rank-display').innerText = "RANK: " + ranks[rankIndex];
+    
+    // Update EXP Bar width
+    const expPercent = (p.exp / nextLvlExp) * 100;
+    document.getElementById('exp-fill').style.width = expPercent + "%";
+    
+    // Update EXP Counter text (Current / Max)
+    document.getElementById('exp-counter').innerText = `${p.exp} / ${nextLvlExp} EXP`;
+
+    const counterEl = document.getElementById('exp-counter');
+    if (expPercent > 80) {
+        counterEl.style.color = "var(--accent)";
+        counterEl.style.textShadow = "0 0 5px var(--accent)";
+    } else {
+        counterEl.style.color = "#555";
+        counterEl.style.textShadow = "none";
+    }
+}
+    function fetchLeaderboard() {
+    const lbDisplay = document.getElementById('leaderboard-display');
+    
+    db.collection('hunters')
+      .orderBy('level', 'desc') // Primary Sort
+      .orderBy('exp', 'desc')   // Secondary Sort (The Tie-Breaker)
+      .limit(20)
+      .onSnapshot(snapshot => {
+          lbDisplay.innerHTML = "";
+          snapshot.docs.forEach((doc, index) => {
+              const data = doc.data();
+              const currentRank = index + 1;
+              
+              lbDisplay.innerHTML += `
+                  <div class="lb-item" onclick="showProfile('${doc.id}')" style="cursor:pointer">
+                      <div class="lb-rank">${currentRank.toString().padStart(2, '0')}</div>
+                      <div class="lb-info">
+                          <span class="name">${data.name || "UNKNOWN"}</span>
+                          <span class="job">${data.job || "HUNTER"}</span>
+                      </div>
+                      <div class="lb-level">LVL ${data.level}</div>
+                  </div>
+              `;
+          });
+      }, error => {
+          console.log("Index Error: ", error.message);
+          // If you see an error here, check the link in the browser console (F12)
+      });
+}
+    function showProfile(userId) {
+    db.collection('hunters').doc(userId).get().then((doc) => {
+        if (doc.exists) {
+            const hunterData = doc.data(); // Use 'hunterData', NOT 'p'
+            document.getElementById('p-name').innerText = hunterData.name || "UNKNOWN";
+            document.getElementById('p-level').innerText = hunterData.level || 0;
+            document.getElementById('p-exp').innerText = Math.floor(hunterData.exp || 0);
+            document.getElementById('p-streak').innerText = hunterData.streak || 0;
+            document.getElementById('profile-overlay').style.display = 'flex';
+        }
+    });
+}
+
+function closeProfile() {
+    document.getElementById('profile-overlay').style.display = 'none';
+}
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
