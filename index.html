@@ -730,7 +730,7 @@ function checkDailyCompletion() {
     // This handles the exp, the level up, and the save automatically.
     gainExp(reward);
     
-    showSystemMessage("DOPAMINE HIT: +15 EXP RECEIVED");
+    showSystemMessage("DOPAMINE HIT: +50 EXP RECEIVED");
 }
 
 // Step 2: The Execution (Gives rewards)
@@ -924,38 +924,43 @@ lastTap = now;
 }
 
 async function consumeItem(itemName) {
-    // 1. Check if item exists
-    if (!p.cargo[itemName] || p.cargo[itemName] <= 0) return;
-
-    // 2. Execute the effect
-    const effect = itemEffects[itemName];
-    if (!effect) {
-        console.error("No effect defined for:", itemName);
-        return;
-    }
-
-    // 3. Apply changes locally
-    p.cargo[itemName] -= 1;
-    const msg = effect.run(); // Run the stat increase/EXP gain
-    
-    // 4. Save to Firebase
-    try {
-        await db.collection('hunters').doc(auth.currentUser.uid).set(p);
-        
-        // 5. Update EVERYTHING immediately
-        updateUI();   // Update Top Bar
-        render('cargo'); // Refresh Inventory Page
-        
-        // Show success message
-        showNotice(`SYSTEM: ${msg}`);
+    if (p.cargo[itemName] > 0) {
+        // 1. Play sound and remove item from local data
         if(typeof playSfx === 'function') playSfx('consume');
+        p.cargo[itemName] -= 1;
 
-    } catch (e) {
-        console.error("Sync Error:", e);
-        p.cargo[itemName] += 1; // Rollback
-        alert("SYNC ERROR: Could not consume item.");
+        // 2. Run the specific effect from itemEffects
+        const resultText = itemEffects[itemName].run();
+        
+        // 3. Close any open description overlays
+        const overlays = document.querySelectorAll('.overlay:not(#notice-overlay):not(#auth-overlay)');
+        overlays.forEach(el => el.remove());
+
+        // 4. Force Level-Up check (in case item gave EXP)
+        const nextGoal = 100 + (p.level * 5);
+        if (p.exp >= nextGoal) {
+            p.exp -= nextGoal;
+            p.level++;
+            showSystemMessage("LEVEL UP", `Reached Level ${p.level}`);
+        }
+
+        // 5. SYNC TO CLOUD
+        try {
+            await db.collection('hunters').doc(auth.currentUser.uid).set(p);
+            
+            // 6. REFRESH UI
+            updateUI();
+            render('cargo'); // Redraw inventory to show updated count
+            showNotice(resultText);
+        } catch (e) {
+            console.error("Cargo Sync Failed:", e);
+            // Rollback if cloud save fails
+            p.cargo[itemName] += 1;
+            alert("Failed to consume item: Cloud Sync Error");
+        }
     }
-}    // --- TAB RENDERING ---
+}
+    // --- TAB RENDERING ---
     function render(tab) {
     const cont = document.getElementById('main-content');
     document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
@@ -979,32 +984,26 @@ async function consumeItem(itemName) {
             </div>`).join('');
         timerId = setInterval(updateTimer, 1000); updateTimer();
     } else if (tab === 'cargo') {
-    const items = Object.entries(p.cargo).filter(([_, count]) => count > 0);
-    
-    if (items.length === 0) {
-        cont.innerHTML = `<div class="system-msg">INVENTORY EMPTY</div>`;
-        return;
-    }
+        const hasItems = Object.entries(p.cargo).some(([n, c]) => c > 0);
+        if (!hasItems) { cont.innerHTML = `<div style="text-align:center; padding:50px; color:#444;">INVENTORY EMPTY</div>`; return; }
 
-    cont.innerHTML = `
-        <div style="color:var(--accent); font-size:0.7rem; text-align:center; margin-bottom:15px;">[ SELECT ITEM TO CONSUME ]</div>
-        <div class="inventory-grid">
-            ${items.map(([name, count]) => `
-                <div class="quest-card" style="border-left: 4px solid var(--accent); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; padding:15px;">
+        cont.innerHTML = `<div style="color:#bf00ff; font-size:0.6rem; text-align:center; margin-bottom:15px;">[ DOUBLE-TAP TO USE ]</div>` +
+            Object.entries(p.cargo).map(([name, count]) => {
+                if (count <= 0) return '';
+                let color = '#bf00ff'; // Purple
+                if (name === 'System Key' || name === 'Elixir of Greatness') color = '#ffaa00'; // Gold
+                else if (["Shadow Essence", "Warrior's Spirit", "Scholar's Scroll", "Elixir of Life"].includes(name)) color = '#00ff95'; // Green
+
+                return `
+                <div class="quest-card" onclick="handleItemInteraction('${name}')" style="border-color:${color}; box-shadow: 0 0 10px ${color}33;">
                     <div>
-                        <div style="color:#fff; font-weight:bold; letter-spacing:1px;">${name.toUpperCase()}</div>
-                        <div style="color:var(--accent); font-size:0.8rem;">Quantity: ${count}</div>
+                        <span class="quest-title" style="color:${color}">${name}</span>
+                        <div style="font-size:0.5rem; color:#555; margin-top:4px;">${color==='#ffaa00'?'ARTIFACT':'SYSTEM REWARD'}</div>
                     </div>
-                    <button class="btn" 
-                            style="padding:5px 15px; font-size:0.7rem; background:rgba(0,255,255,0.1); border:1px solid var(--accent);" 
-                            onclick="consumeItem('${name}')">
-                        USE
-                    </button>
-                </div>
-            `).join('')}
-        </div>
-    `;
-}
+                    <span style="color:${color}; font-size:1.2rem; font-family:'JetBrains Mono';">x${count}</span>
+                </div>`;
+            }).join('');
+    }
         // Add this inside your existing render(tab) function
       else if (tab === 'ranking') {
         cont.innerHTML = `
@@ -1169,25 +1168,3 @@ function closeProfile() {
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
