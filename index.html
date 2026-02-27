@@ -731,7 +731,7 @@ function checkDailyCompletion() {
 }
 
 // Step 2: The Execution (Gives rewards)
-async function executeMission(id) {
+function executeMission(id) {
     // 1. Remove the confirmation popup
     const confirmOverlay = document.getElementById('confirm-overlay');
     if (confirmOverlay) confirmOverlay.remove();
