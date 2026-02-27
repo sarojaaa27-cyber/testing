@@ -737,7 +737,7 @@ async function executeMission(id) {
     if (confirmOverlay) confirmOverlay.remove();
     
     // 2. Find the mission in the local player object (p)
-    let mission = p.missions.find(m => m.id == id);
+    let mission = p.missions.find(m => m.id === id);
     if (!mission || mission.done) return;
 
     // 3. Apply changes locally
