@@ -578,10 +578,11 @@ function playSfx(type) {
     }
 }
     function save() { 
-        if(auth.currentUser && p) {
-            db.collection('hunters').doc(auth.currentUser.uid).set(p); 
-        }
+    if(auth.currentUser && p) {
+        // Use .set(p) to overwrite with the latest local data
+        db.collection('hunters').doc(auth.currentUser.uid).set(p); 
     }
+}
 
     // --- MISSIONS ---
 function generateQuests() {
@@ -730,24 +731,51 @@ function checkDailyCompletion() {
 }
 
 // Step 2: The Execution (Gives rewards)
-function executeMission(id) {
-    // Remove the confirmation popup
+async function executeMission(id) {
+    // 1. Remove the confirmation popup
     const confirmOverlay = document.getElementById('confirm-overlay');
     if (confirmOverlay) confirmOverlay.remove();
     
-    // Find mission
+    // 2. Find the mission in the local player object (p)
     let mission = p.missions.find(m => m.id == id);
     if (!mission || mission.done) return;
 
-    // Mark as done and give rewards
+    // 3. Apply changes locally
     mission.done = true;
-    gainExp(10); // Or whatever your exp amount is
     
-    save();
-    renderMissions(); // Refresh the list
-    showNotice("MISSION COMPLETE");
-}
+    // 4. Calculate Rewards
+    const expGain = 10 + (p.level * 2); // Scales with level
+    p.exp += expGain;
 
+    // 5. THE CRITICAL STEP: Level Up Check
+    const nextGoal = 100 + (p.level * 5);
+    if (p.exp >= nextGoal) {
+        p.exp -= nextGoal;
+        p.level++;
+        showSystemMessage("LEVEL UP", `Reached Level ${p.level}`);
+    }
+
+    // 6. SYNC TO FIREBASE (Wait for completion)
+    try {
+        await db.collection('hunters').doc(auth.currentUser.uid).update({
+            missions: p.missions,
+            exp: p.exp,
+            level: p.level
+        });
+        
+        // 7. Success! Update the screen
+        updateUI();
+        render('mission');
+        showNotice("MISSION COMPLETE: +" + expGain + " EXP");
+        playSfx('success');
+        
+    } catch (error) {
+        console.error("Database sync failed:", error);
+        alert("System Error: Could not sync progress to the cloud.");
+        // Revert local change if sync fails
+        mission.done = false;
+    }
+}
     // --- 3. DAILY CLEAR REWARD ---
     // --- 3. DAILY CLEAR REWARD ---
     // --- 3. DAILY CLEAR REWARD ---
