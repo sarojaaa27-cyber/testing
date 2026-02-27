@@ -966,41 +966,7 @@ function consumeItem(itemName) {
                 <div class="quest-req">REQ: ${m.r}</div>
             </div>`).join('');
         timerId = setInterval(updateTimer, 1000); updateTimer();
-    } else if (tab === 'cargo') {
-    const items = Object.entries(p.cargo).filter(([_, count]) => count > 0);
-    
-    if (items.length === 0) {
-        cont.innerHTML = `<div style="text-align:center; padding:50px; opacity:0.3;">INVENTORY EMPTY</div>`;
-        return;
-    }
-
-    cont.innerHTML = items.map(([name, count]) => `
-        <div class="quest-card" onclick="handleLegacyClick('${name}')" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-            <div>
-                <div class="quest-title" style="color:var(--accent);">${name}</div>
-                <div style="font-size:0.6rem; opacity:0.6;">Click to view / Hold to use</div>
-            </div>
-            <div style="font-size:1.2rem; color:var(--accent);">x${count}</div>
-        </div>
-    `).join('');
-}
-
-// Simple, fast interaction logic
-function handleLegacyClick(name) {
-    const effect = itemEffects[name];
-    if (!effect) return;
-
-    // Show info immediately
-    showSystemMessage(name, effect.desc + "<br><br><b>[ CLICK AGAIN TO CONSUME ]</b>");
-    
-    // Set up the next click to consume
-    const cards = document.querySelectorAll('.quest-card');
-    cards.forEach(card => {
-        if (card.innerText.includes(name)) {
-            card.onclick = () => consumeItem(name);
-        }
-    });
-} else if (tab === 'ranking') {
+    } else if (tab === 'cargo') { const hasItems = Object.entries(p.cargo).some(([n, c]) => c > 0); if (!hasItems) { cont.innerHTML = `<div style="text-align:center; padding:50px; color:#444;">INVENTORY EMPTY</div>`; return; } cont.innerHTML = `<div style="color:#bf00ff; font-size:0.6rem; text-align:center; margin-bottom:15px;">[ DOUBLE-TAP TO USE ]</div>` + Object.entries(p.cargo).map(([name, count]) => { if (count <= 0) return ''; let color = '#bf00ff'; // Purple if (name === 'System Key' || name === 'Elixir of Greatness') color = '#ffaa00'; // Gold else if (["Shadow Essence", "Warrior's Spirit", "Scholar's Scroll", "Elixir of Life"].includes(name)) color = '#00ff95'; // Green return ` <div class="quest-card" onclick="handleItemInteraction('${name}')" style="border-color:${color}; box-shadow: 0 0 10px ${color}33;"> <div> <span class="quest-title" style="color:${color}">${name}</span> <div style="font-size:0.5rem; color:#555; margin-top:4px;">${color==='#ffaa00'?'ARTIFACT':'SYSTEM REWARD'}</div> </div> <span style="color:${color}; font-size:1.2rem; font-family:'JetBrains Mono';">x${count}</span> </div>`; }).join(''); } else if (tab === 'ranking') {
         cont.innerHTML = `
             <div style="text-align:center; color:var(--accent); font-family:'JetBrains Mono'; font-size:0.7rem; margin-bottom:20px;">
                 [ GLOBAL HUNTER RANKINGS ]
@@ -1160,6 +1126,7 @@ function handleLegacyClick(name) {
         }
     });
 }
+    function fetchLeaderboard() { const lbDisplay = document.getElementById('leaderboard-display'); db.collection('hunters') .orderBy('level', 'desc') // Primary Sort .orderBy('exp', 'desc')   // Secondary Sort (The Tie-Breaker) .limit(20) .onSnapshot(snapshot => { lbDisplay.innerHTML = ""; snapshot.docs.forEach((doc, index) => { const data = doc.data(); const currentRank = index + 1; lbDisplay.innerHTML += ` <div class="lb-item" onclick="showProfile('${doc.id}')" style="cursor:pointer"> <div class="lb-rank">${currentRank.toString().padStart(2, '0')}</div> <div class="lb-info"> <span class="name">${data.name || "UNKNOWN"}</span> <span class="job">${data.job || "HUNTER"}</span> </div> <div class="lb-level">LVL ${data.level}</div> </div> `; }); }, error => { console.log("Index Error: ", error.message); // If you see an error here, check the link in the browser console (F12) }); } function showProfile(userId) { db.collection('hunters').doc(userId).get().then((doc) => { if (doc.exists) { const hunterData = doc.data(); // Use 'hunterData', NOT 'p' document.getElementById('p-name').innerText = hunterData.name || "UNKNOWN"; document.getElementById('p-level').innerText = hunterData.level || 0; document.getElementById('p-exp').innerText = Math.floor(hunterData.exp || 0); document.getElementById('p-streak').innerText = hunterData.streak || 0; document.getElementById('profile-overlay').style.display = 'flex'; } }); }
 
 function closeProfile() {
     document.getElementById('profile-overlay').style.display = 'none';
