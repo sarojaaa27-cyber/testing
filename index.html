@@ -900,51 +900,66 @@ function checkDailyRewards() {
 function handleItemInteraction(itemName) {
     const now = Date.now();
     const effect = itemEffects[itemName];
+    
+    // Safety check: ensure item exists in effects and cargo
+    if (!effect || !p.cargo[itemName] || p.cargo[itemName] <= 0) return;
 
     if (now - lastTap < 300) {
-        // DOUBLE TAP -> CONSUME
+        // --- DOUBLE TAP DETECTED ---
+        // We clear any pending single-tap timers
+        if (window.itemTapTimeout) clearTimeout(window.itemTapTimeout);
         consumeItem(itemName);
-        playSfx('consume');
     } else {
-        // SINGLE TAP -> SHOW DEFINITION
-        // We use a small timeout to ensure we aren't about to double tap
-        setTimeout(() => {
-            if (Date.now() - lastTap >= 300) {
-                playSfx('click');
-                showSystemMessage(
-                    itemName.toUpperCase(), 
-                    `<span style="color:var(--accent)">EFFECT:</span><br>${effect.desc}<br><br><small>[ Double-tap to confirm consumption ]</small>`
-                );
-            }
-        }, 305);
+        // --- SINGLE TAP DETECTED ---
+        // We use a timeout to wait and see if a second tap is coming
+        window.itemTapTimeout = setTimeout(() => {
+            playSfx('click');
+            showSystemMessage(
+                itemName.toUpperCase(), 
+                `<span style="color:var(--accent)">EFFECT:</span><br>${effect.desc}<br><br><small style="color:#666;">[ Double-tap to consume ]</small>`
+            );
+        }, 300);
     }
     lastTap = now;
 }
-    
-function consumeItem(itemName) {
+
+async function consumeItem(itemName) {
     if (p.cargo[itemName] > 0) {
-        // Clear previous info boxes
+        // 1. Play sound and remove item from local data
+        if(typeof playSfx === 'function') playSfx('consume');
+        p.cargo[itemName] -= 1;
+
+        // 2. Run the specific effect from itemEffects
+        const resultText = itemEffects[itemName].run();
+        
+        // 3. Close any open description overlays
         const overlays = document.querySelectorAll('.overlay:not(#notice-overlay):not(#auth-overlay)');
         overlays.forEach(el => el.remove());
 
-        p.cargo[itemName] -= 1;
-        const resultText = itemEffects[itemName].run(); // Calls the 'run' function
-        
-        showSystemMessage("ITEM CONSUMED", resultText);
-        
-        // Level up check
-        if (p.exp >= p.level * 100) {
-            p.level++; p.exp = 0;
-            playSfx('levelUp');
+        // 4. Force Level-Up check (in case item gave EXP)
+        const nextGoal = 100 + (p.level * 5);
+        if (p.exp >= nextGoal) {
+            p.exp -= nextGoal;
+            p.level++;
             showSystemMessage("LEVEL UP", `Reached Level ${p.level}`);
         }
-        
-        save();
-        updateUI();
-        render('cargo'); 
+
+        // 5. SYNC TO CLOUD
+        try {
+            await db.collection('hunters').doc(auth.currentUser.uid).set(p);
+            
+            // 6. REFRESH UI
+            updateUI();
+            render('cargo'); // Redraw inventory to show updated count
+            showNotice(resultText);
+        } catch (e) {
+            console.error("Cargo Sync Failed:", e);
+            // Rollback if cloud save fails
+            p.cargo[itemName] += 1;
+            alert("Failed to consume item: Cloud Sync Error");
+        }
     }
 }
-
     // --- TAB RENDERING ---
     function render(tab) {
     const cont = document.getElementById('main-content');
